@@ -4,7 +4,7 @@ options.option('ntasks',5)
 
 
 print options
-print slurm.queue
+print slurm.queue()
 jid=slurm.send('sleep 10',options=options)
 print slurm.status(jid)
 slurm.cancel(jid)
