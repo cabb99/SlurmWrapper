@@ -3,43 +3,7 @@
 #S.help('qq')
 #S.options()
 
-import subprocess
-
-def SlurmQueue():
-    '''Call slurm queue and return a list of dictionaries'''
-    squeue=subprocess.check_output(['squeue']) #Call squeue
-    squeue=squeue.split('\n') #Split per line
-    squeue=[s.split() for s in squeue] #Split per column
-    squeue=[dict(zip(squeue[0],s)) for s in squeue[1:-1]] #Create a Dict and clean
-    return squeue
-
-def send(commands,slurm_options=slurm_options(),config_file='slurm_temp.conf'):
-    '''Send the job to the slurm queue'''
-    #Write the config file
-    with open(config_file,'w+') as f:
-        f.write(str(slurm_options))
-        f.write(commands)
-    #Submit the file
-    jobid=subprocess.check_output(['sbatch',config_file])
-    return jobid
-
-def status(jobid):
-    '''Get the status of the job'''
-    #Get the status on the queue
-    #If not in the queue get the status in the output
-
-def cancel(jobid):
-    '''Cancel the job'''
-    subprocess.call(['scancel',jobid])
-
-def write_slurm_config(slurm_options):
-    f=open(config_file,'w+')    
-    f.write('#!/bin/bash')
-    for s in slurm_config:
-        if s.required or s.new:        
-            f.write('#SBATCH --%s=%v'%(s.option,s.value))
-
-class slurm_options:    
+class Options:    
     S={}    
     
     def __init__(self):
@@ -123,6 +87,34 @@ class slurm_options:
                 s+='#SBATCH --%s=%s\n'%(opt,str(self.S[opt]['value']))
         return s
 
+import subprocess
 
-S=slurm_options()
-S.option('ntasks',5)
+def queue():
+    '''Call slurm queue and return a list of dictionaries'''
+    squeue=subprocess.check_output(['squeue']) #Call squeue
+    squeue=squeue.split('\n') #Split per line
+    squeue=[s.split() for s in squeue] #Split per column
+    squeue=[dict(zip(squeue[0],s)) for s in squeue[1:-1]] #Create a Dict and clean
+    return squeue
+
+def send(commands,options=Options(),config_file='slurm_temp.conf'):
+    '''Send the job to the slurm queue'''
+    #Write the config file
+    with open(config_file,'w+') as f:
+        f.write(str(options))
+        f.write(commands)
+    #Submit the file
+    jobid=subprocess.check_output(['sbatch',config_file])
+    return jobid
+
+def status(jobid):
+    '''Get the status of the job'''
+    #Get the status on the queue
+    #If not in the queue get the status in the output
+
+def cancel(jobid):
+    '''Cancel the job'''
+    subprocess.call(['scancel',jobid])
+
+#S=Options()
+#S.option('ntasks',5)
