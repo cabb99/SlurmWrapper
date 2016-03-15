@@ -2,6 +2,7 @@
 #S.change('aa','bb')
 #S.help('qq')
 #S.options()
+import subprocess
 
 class Options:    
     S={}    
@@ -71,14 +72,6 @@ class Options:
         elif a==None:
             return True if value==None else False
 
-
-        
-    #def __iter__(self):
-    #    I=[]        
-    #    for s in self.S.keys():
-    #        I+=[self.opt(s,self.S[s]['value'])]
-    #    return iter(I)
-
     def __str__(self):
         s=''   
         s+='#!/bin/bash\n'
@@ -87,7 +80,7 @@ class Options:
                 s+='#SBATCH --%s=%s\n'%(opt,str(self.S[opt]['value']))
         return s
 
-import subprocess
+
 
 def queue():
     '''Call slurm queue and return a list of dictionaries'''
@@ -111,6 +104,8 @@ def status(jobid):
     '''Get the status of the job'''
     #Get the status on the queue
     #If not in the queue get the status in the output
+    for q in queue():
+        if q[{'JOBID'==str('jobid')}
 
 def cancel(jobid):
     '''Cancel the job'''
