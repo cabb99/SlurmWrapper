@@ -14,7 +14,7 @@ def my_path():
 
 # Time manipulation
 def stime(t):
-    '''Convert from seconds to slurm time format'''
+    '''Convert slurm time format to seconds'''
     s=0    
     D=t.split('-')
     T=[int(i) for i in D[-1].split(':')]
@@ -36,6 +36,7 @@ def stime(t):
     return s
 
 def sformat(t):
+    '''Convert from seconds to slurm time format'''
     t=int(t)
     s=t%60
     t-=s
@@ -74,11 +75,12 @@ def SlurmQueue():
 class SlurmOptions(object):    
         
     def __init__(self):
+        '''Define all default and required options'''        
         self.S={}               
         #Known options
         self.define_option('job-name'          ,'Unnamed'  ,True   ,str    ,'Assign a job name')
         self.define_option('export'            ,'ALL'      ,True   ,str    ,'Exports all environment variables to the job.  See our FAQ for details.')
-        self.define_option('ntasks'            ,2          ,True   ,int    ,'Number of tasks per job. Used for MPI jobs')
+        self.define_option('ntasks'            ,1          ,True   ,int    ,'Number of tasks per job. Used for MPI jobs')
         self.define_option('nodes'             ,1          ,True   ,int    ,'Number of nodes requested.')
         self.define_option('ntasks-per-node'   ,1          ,True   ,int    ,'Number of tasks per node')
         self.define_option('partition'         ,'commons'  ,True   ,int    ,'Specify the name of the Partition (queue) to use')
@@ -92,10 +94,12 @@ class SlurmOptions(object):
         self.define_option('error'             ,''         ,False  ,str     ,'Standard Error path')
         
 
-    def define_option(self,variable,default_value,explicit,var_type,description):    
+    def define_option(self,variable,default_value,explicit,var_type,description):
+        '''Define new options after init'''
         self.S.update({variable:{'value':default_value,'add':explicit,'check':var_type,'help':description}})
     
     def option(self,variable,value,explicit=True,var_type='pass',description=''):
+        '''Change the value of an option, if non-existant then it will be defined'''
         if variable in self.S.keys():
             assert self.check(self.S[variable],value),'Not a valid value for %s: %s'%(variable,value)
             self.S[variable]['value']=value
@@ -104,26 +108,31 @@ class SlurmOptions(object):
             self.define_option(variable,value,explicit,var_type,description)
     
     def del_option(self,option):
+        '''Do not use an option, it will not be undefined'''
         self.S[option]['add']=False        
 
     def help(self, option=''):
+        '''Return the option description'''
         if option=='':
             return 'Select from:\n %s'%'\n'.join(S.keys)   
         return self.S[option]['help']        
 
 
     def get(self,option):
+        '''Return the value of an option'''
         if option in self.S.keys() and self.S[option]['add']:
             return self.S[option]['value']
         else:
             return None
 
     def options(self):
+        '''Return all defined options'''        
         t=self.S.keys()
         t.sort()
         return t
    
     def check(self,Var,value):
+        '''Check if the option format is correct'''
         a=Var['check']
         if type(a)==type:
             return True if type(value)==a else False
@@ -149,6 +158,7 @@ class SlurmOptions(object):
             return True if value==None else False
 
     def __str__(self):
+        '''Print the options as expected by slurm'''        
         s=''   
         s+='#!/bin/bash\n'
         for opt in self.options():
@@ -156,10 +166,16 @@ class SlurmOptions(object):
                 s+='#SBATCH --%s=%s\n'%(opt,str(self.S[opt]['value']))
         return s
 
+    def read(self,slurm_file):
+        '''Read the configuration from a file'''
+        pass
+
+
 #Track Slurm Job
 
-class SlurmJob():
+class SlurmJob:
     def __init__(self,commands,Soptions=SlurmOptions(),config_file='slurm_temp.conf'):
+        '''Start a job'''    
         self.commands=commands
         self.restart_commands=commands
         self.config_file=config_file        
@@ -169,8 +185,6 @@ class SlurmJob():
             f.write(str(Soptions))
             f.write('\necho "I ran on:"\ncat $SLURM_JOB_NODELIST\n')
             f.write(commands)
-        #Submit the file
-        self.jobid=int(subprocess.check_output(['sbatch',config_file]).split()[-1])
         self.slurm_options=SlurmOptions()
         self.slurm_options.S=Soptions.S.copy()
         if self.slurm_options.get('workdir'):        
@@ -181,16 +195,23 @@ class SlurmJob():
         if self.slurm_options.get('output'):
             self.stdout=self.slurm_options.get('output')
         else:        
-            self.stdout='%s/slurm-%i.out'%(self.path,self.jobid)        
+            self.stdout=None       
 
         if self.slurm_options.get('error'):
             self.stderr=self.slurm_options.get('error')
         elif self.slurm_options.get('output'):
             self.stderr=self.slurm_options.get('output')        
         else:
+            self.stderr=None
+        self.jobid=None
+    
+    def run(self):
+        #Submit the file
+        self.jobid=int(subprocess.check_output(['sbatch',config_file]).split()[-1])
+        if self.stdout=None:
+            self.stdout='%s/slurm-%i.out'%(self.path,self.jobid)
+        if self.stderr=None:
             self.stderr='%s/slurm-%i.out'%(self.path,self.jobid)
-        self.save()
-
 
     def status(self):
         '''Get the status of the job'''
@@ -203,6 +224,7 @@ class SlurmJob():
             return 'END'
 
     def WallTime(self):
+        '''Get max time before job stops'''
         if self.status()=='PD':
             return stime(self.slurm_options.get('time'))   
         elif self.status()=='R':
@@ -211,21 +233,37 @@ class SlurmJob():
             return 0
 
     def cancel(self):
+        '''Cancel the job'''
         subprocess.call(['scancel',str(self.jobid)])
 
-    def save(self):
-        with open('%s/Tracking/slurm-%i.pickle'%(my_path(),self.jobid),'w+') as f:     
+    def save(self,path):
+        '''add the job to the tracker'''
+        self.pickle_path='%s/slurm-%i.pickle'%(path,self.jobid)
+        with open(self.pickle_path,'w+') as f:     
             pickle.dump(self,f)
+        #Start tracker if it is not running
 
     def delete(self):
-        os.remove('%s/Tracking/slurm-%i.pickle'%(my_path(),self.jobid))
+        '''delete the job from the tracker'''
+        os.remove(self.pickle_path)
 
     def restart():
+    '''Stop previous job and start a new one using the restart commands'''
         if self.status=='END':
             self.delete()
-            self.__init__(self,sekf.restart_commands,self.slurm_config,self.config_file)
+            self.__init__(self,self.restart_commands,self.slurm_config,self.config_file)
 
-class MyDaemon(Daemon):
+class OldSlurmJob(SlurmJob):
+    def __init__(self,config_file,jobid):
+        #Read config file
+        self.config_file=config_file            
+        self.slurm_options.read(config_file)
+        self.commands=1 #Get commands!!!!!
+        #Read       
+        self.jobid=jobid
+
+class Slurm_Tracker(Daemon):
+    self.tracking_folder=my_path()+'Tracking'
     def run(self):
         Log_file=my_path()+'Tracking/daemon.log'   
         Still_running=True
@@ -257,7 +295,7 @@ class MyDaemon(Daemon):
             wait_time=60*60 #Check every hour just in case            
             for job in joblist:
                 os.chdir(job.path)
-                if job.status()='END':
+                if job.status()=='END':
                     Due2Time=False                    
                     with open(last_slurm) as handle:
                         for line in handle:
@@ -269,87 +307,33 @@ class MyDaemon(Daemon):
                         job.delete()
                 else:
                     wait_time=job.WallTime() if job.WallTime()<wait_time else wait_time
-                time.sleep(10+wait_time)
-   
-
-
-
-################################################################################
-            #print dir(subprocess)
-            daemon_log.write("Status at %s\n"%time.ctime(time.time()))
-            Still_running=False
-            #Get a list of all subfolders
-            subfolders=next(os.walk(Folder))[1]
-                       
-            #Call slurm queue
-            jobid_list=[s['JOBID'] for s in self.SlurmQueue()]
-            
-            for folder in subfolders:
-                #Enter folder    
-                f=Folder+folder
-                os.chdir(f)    
-                
-                #Find most recent Output from slurm
-                last_time=0
-                last_slurm=None
-                for f in glob.glob("slurm*.out"):
-                    last_slurm=f if os.path.getmtime(f) > last_time else last_slurm
-                    last_time=os.path.getmtime(f)
-                if last_slurm==None: #First run
-                    Running=True
-                    Still_running=True
-                    daemon_log.write('MD in %s without log\n'%folder)
-                    continue        
-
-                #Check if running
-                Running=False    
-                try:
-                    #Open slurm.jobid and check if in Slurm Queue        
-                    with open('slurm.jobid') as jobid:
-                        jid=jobid.readline().split()[-1]
-                    if jid in jobid_list:
-                        Running=True
-                        Still_running=True
-                        daemon_log.write('MD in %s still running\n'%folder) 
-                        continue
-                #If not slurm.jobid check if most recent output older than md.log    
-                except IOError:
-                    #Check most recent log
-                    for f in glob.glob("*.log"):
-                        if os.path.getmtime(f) > last_time:
-                            Running=True
-                            break
-                    if Running:              
-                        Still_running=True
-                        daemon_log.write('MD in %s still running\n'%folder)               
-                        continue
-                
-                #Check if the ran stop due to time
-                Due2Time=False    
-                handle=open(last_slurm)
-                for line in handle:
-                    if "CANCELLED" in line and "DUE TO TIME LIMIT" in line:
-                        Due2Time=True
-                handle.close()
-                
-                if not Due2Time:
-                    daemon_log.write('MD in %s has ended\n'%folder)
-                    continue
-                
-                #Restart if needed
-                if not Running and Due2Time:
-                    #Run sbatch
-                    with open('slurm.jobid','w+') as jobid:        
-                        subprocess.call(['sbatch','rst.slurm'],stdout=jobid)
-                    daemon_log.write('Restarting %s\n'%folder)
-                    Still_running=True
             daemon_log.close()            
-            time.sleep(20*60)
+            time.sleep(10+wait_time) #If end near, check in 10s
         daemon_log=open(Log_file,'a+')        
         daemon_log.write("No more processes active, Daemon stop at %s\n"%time.ctime(time.time()))  
         daemon_log.close()
-
+    def track(self,slurmjob):
+        slurmjob.save(self.tracking_folder)
+        self.start()
+ 
 if __name__=='__main__':
+    #Testing    
+    #Start options
+    #S=SlurmOptions()
+    #Define new option
+    #Define old option
+    #Change new option
+    #Change old option
+    #Give bad option value
+    #Get the value of an option
+    #Print option help
+    #Start job
+    #Cancel job
+    #Restart job
+    #Save job
+    #Delete job
+
+
     S=SlurmOptions()
     S.option('ntasks',1)
     S.option('workdir','/home/cab22/Git/Daemon/1')
