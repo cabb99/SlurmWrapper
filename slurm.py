@@ -411,7 +411,7 @@ class SlurmCommander():
         
         #Start a slurm job
         Job=SlurmJob(args.slurm_script)
-        Job.test()
+        Job.run()
         if self.state=='Not Running':
             S = SlurmTracker('%s/Tracking/SlurmTracker.pid'%my_path())
             S.run()
