@@ -408,7 +408,6 @@ class SlurmCommander():
             self.pid = None
             self.hostname = None
             self.state='Not Running'
-        print self.state
 
             
 
@@ -495,13 +494,13 @@ if __name__=='__main__':
     track_parser.set_defaults(func=main.track)
     
     # Status
-    list_parser = subparsers.add_parser('status', help='Prints status of the tracker and the list jobs being currently tracked')
-    list_parser.set_defaults(func=main.status)
+    status_parser = subparsers.add_parser('status', help='Prints status of the tracker and the list jobs being currently tracked')
+    status_parser.set_defaults(func=main.status)
     
     # Cancel jobs
     cancel_parser = subparsers.add_parser('cancel', help='Cancels a job')
     cancel_parser.add_argument('job', help='Slurm job') #Slurm job
-    list_parser.set_defaults(func=main.cancel)
+    cancel_parser.set_defaults(func=main.cancel)
     
     # Test
     test_parser = subparsers.add_parser('test', help='Tests if every command on the scripts works correctly')
