@@ -1,10 +1,20 @@
-#S=slurm.options()
-#S.change('aa','bb')
-#S.help('qq')
-#S.options()
+#!/usr/bin/env python
 
-import subprocess,os,pickle
+##################
+#   Parameters   #
+##################
+
+name='SlurmTracker'
+Tracking='Tracking'
+pid='SlurmTracker.pid'
+log='SlurmTracker.log'
+
+import subprocess
+import os
+import pickle
+import time
 from daemon import Daemon
+
 
 #Locate folder
 def my_path():
@@ -53,7 +63,6 @@ def sformat(t):
         return '%02i:%02i'%(m,s)
 
 #Parse SlurmQueue
-
 def SlurmQueue():
     '''Call slurm queue and return a list of dictionaries'''
     squeue=subprocess.check_output(['squeue']) #Call squeue
@@ -92,8 +101,17 @@ class SlurmOptions(object):
         self.define_option('workdir'             ,''         ,False  ,str     ,'Remote cwd')
         self.define_option('output'            ,''         ,False  ,str     ,'Standard Output path')
         self.define_option('error'             ,''         ,False  ,str     ,'Standard Error path')
-        
-
+    
+    def read(self,script):
+        script_args={}
+        print "Old Configuration:"
+        with open(script) as S:
+            for line in S:
+                if len(line)>10 and line[:7]=='#SBATCH' and len(line.split('--'))==2:
+                    var,val=line.split('--')[1].split('=')
+                    print line[:-1]
+                    self.option(var,val.split('\n')[0])
+    
     def define_option(self,variable,default_value,explicit,var_type,description):
         '''Define new options after init'''
         self.S.update({variable:{'value':default_value,'add':explicit,'check':var_type,'help':description}})
@@ -166,14 +184,10 @@ class SlurmOptions(object):
                 s+='#SBATCH --%s=%s\n'%(opt,str(self.S[opt]['value']))
         return s
 
-    def read(self,slurm_file):
-        '''Read the configuration from a file'''
-        pass
-
 
 #Track Slurm Job
 
-class SlurmJob:
+class NewSlurmJob():
     def __init__(self,commands,Soptions=SlurmOptions(),config_file='slurm_temp.conf'):
         '''Start a job'''    
         self.commands=commands
@@ -193,107 +207,133 @@ class SlurmJob:
             self.path=os.getcwd()
      
         if self.slurm_options.get('output'):
-            self.stdout=self.slurm_options.get('output')
+            if self.slurm_options.get('output')[0]=='/':
+                self.stdout=self.slurm_options.get('output')
+            else:
+                self.stdout='%s/%s'%(self.path,self.slurm_options.get('output'))
         else:        
             self.stdout=None       
 
         if self.slurm_options.get('error'):
-            self.stderr=self.slurm_options.get('error')
+            if self.slurm_options.get('output')[0]=='/':
+                self.stderr=self.slurm_options.get('error')
+            else:
+                self.stderr='%s/%s'%(self.path,self.slurm_options.get('error'))
         elif self.slurm_options.get('output'):
             self.stderr=self.slurm_options.get('output')        
         else:
             self.stderr=None
+        self.state='OFF'
         self.jobid=None
     
     def run(self):
         #Submit the file
-        self.jobid=int(subprocess.check_output(['sbatch',config_file]).split()[-1])
-        if self.stdout=None:
+        self.jobid=int(subprocess.check_output(['sbatch',self.config_file]).split()[-1])
+        if self.stdout==None:
             self.stdout='%s/slurm-%i.out'%(self.path,self.jobid)
-        if self.stderr=None:
+        if self.stderr==None:
             self.stderr='%s/slurm-%i.out'%(self.path,self.jobid)
+        self.state='Starting'
+        self.save()
 
     def status(self):
         '''Get the status of the job'''
-        Q=SlurmQueue()    
+        Q=SlurmQueue()
         #Get the status on the queue
         if self.jobid in Q.keys():
-            return Q[self.jobid]['ST']
-        #If not in the queue get the status in the output
-        else:
-            return 'END'
+            self.state=Q[self.jobid]['ST']
+        elif os.path.isfile(self.stdout):
+            self.state='END'
+        self.clean()
+        return self.state
 
     def WallTime(self):
         '''Get max time before job stops'''
-        if self.status()=='PD':
+        if self.status() in ['PD','Starting']:
             return stime(self.slurm_options.get('time'))   
         elif self.status()=='R':
             return stime(self.slurm_options.get('time'))-stime(SlurmQueue()[self.jobid]['TIME'])
+        elif self.status() in ['END','OFF']:
+            return 60*60
         else:
             return 0
 
     def cancel(self):
         '''Cancel the job'''
         subprocess.call(['scancel',str(self.jobid)])
+        self.remove()
+        
 
-    def save(self,path):
+    def save(self,pickle_path='%s/Tracking'%my_path()):
         '''add the job to the tracker'''
-        self.pickle_path='%s/slurm-%i.pickle'%(path,self.jobid)
+        self.pickle_path=pickle_path
         with open(self.pickle_path,'w+') as f:     
             pickle.dump(self,f)
-        #Start tracker if it is not running
-
-    def delete(self):
-        '''delete the job from the tracker'''
-        os.remove(self.pickle_path)
-
-    def restart():
-    '''Stop previous job and start a new one using the restart commands'''
-        if self.status=='END':
-            self.delete()
-            self.__init__(self,self.restart_commands,self.slurm_config,self.config_file)
-
-class OldSlurmJob(SlurmJob):
-    def __init__(self,config_file,jobid):
-        #Read config file
-        self.config_file=config_file            
-        self.slurm_options.read(config_file)
-        self.commands=1 #Get commands!!!!!
-        #Read       
-        self.jobid=jobid
-
-class Slurm_Tracker(Daemon):
-    self.tracking_folder=my_path()+'Tracking'
-    def run(self):
-        Log_file=my_path()+'Tracking/daemon.log'   
-        Still_running=True
-        while Still_running:
-            daemon_log=open(Log_file,'w+')
             
-            #Kill daemon when pidfile is erased
-            try:
-                pf = file(self.pidfile,'r')
-                pid,hostname = pf.read().strip().split('\t')
-                pid = int(pid)
-                pf.close()
-                #daemon_log.write(str(self.pidfile))
-            except IOError:
-                pid = None 
-                            
-            if not pid:
-                daemon_log.write("Daemon killed remotely.\nDaemon stop at %s\n"%time.ctime(time.time()))                
-                daemon_log.close()   
-                break
-            
-            #List jobs
-            daemon_log.write("Status at %s\n"%time.ctime(time.time()))
-            joblist=[]
-            for f in glob.glob("%s/Tracking/slurm-*.pickle"%my_path()):
-                with open(f) as F:
-                    joblist+=[pickle.load(F)]
-            
-            wait_time=60*60 #Check every hour just in case            
-            for job in joblist:
+    def remove(self):
+        '''remove the job from the tracker'''
+        try:
+            os.remove(self.pickle_path)
+        except OSError:
+            pass
+
+    def clean():
+        if self.status in ['END','OFF']:
+            self.remove()
+
+class SlurmJob(NewSlurmJob):
+    def __init__(self,script):
+        '''Start a job'''    
+        self.config_file=config_file
+        self.slurm_options=SlurmOptions()
+        self.slurm_options.read(script)
+        if self.slurm_options.get('workdir'):        
+            self.path=self.slurm_options.get('workdir')       
+        else:
+            self.path=os.getcwd()
+     
+        if self.slurm_options.get('output'):
+            if self.slurm_options.get('output')[0]=='/':
+                self.stdout=self.slurm_options.get('output')
+            else:
+                self.stdout='%s/%s'%(self.path,self.slurm_options.get('output'))
+        else:        
+            self.stdout=None       
+
+        if self.slurm_options.get('error'):
+            if self.slurm_options.get('output')[0]=='/':
+                self.stderr=self.slurm_options.get('error')
+            else:
+                self.stderr='%s/%s'%(self.path,self.slurm_options.get('error'))
+        elif self.slurm_options.get('output'):
+            self.stderr=self.slurm_options.get('output')        
+        else:
+            self.stderr=None
+        self.state='OFF'
+        self.jobid=None
+
+class SlurmTracker(Daemon):
+    def checkpid(self):
+        try:
+            pf = file(self.pidfile,'r')
+            pid,self.hostname = pf.read().strip().split('\t')
+            self.pid = int(pid)
+            pf.close()
+        except IOError:
+            self.pid = None
+            self.hostname = None
+            self.status='Not running'   
+    
+    def listjobs(self):
+        joblist=[]
+        for f in glob.glob("%s/Tracking/slurm-*.pickle"%my_path()):
+            with open(f) as F:
+                joblist+=[pickle.load(F)]
+        self.joblist=joblist
+        
+    def checkjobs(self):
+        self.wait_time=self.max_wait_time
+        for job in self.joblist:
                 os.chdir(job.path)
                 if job.status()=='END':
                     Due2Time=False                    
@@ -304,19 +344,157 @@ class Slurm_Tracker(Daemon):
                     if Due2Time:
                         job.restart()
                     else:
-                        job.delete()
+                        job.remove()
                 else:
-                    wait_time=job.WallTime() if job.WallTime()<wait_time else wait_time
-            daemon_log.close()            
-            time.sleep(10+wait_time) #If end near, check in 10s
-        daemon_log=open(Log_file,'a+')        
-        daemon_log.write("No more processes active, Daemon stop at %s\n"%time.ctime(time.time()))  
-        daemon_log.close()
-    def track(self,slurmjob):
-        slurmjob.save(self.tracking_folder)
-        self.start()
+                    self.wait_time=job.WallTime() if job.WallTime()<wait_time else wait_time
+    
+    def run(self,max_wait_time=60*60):
+        Log_file='%s/Tracking/SlurmTracker.log'%my_path() 
+        self.pickle_path='%s/Tracking/SlurmTracker.pickle'%my_path()
+        self.max_wait_time=max_wait_time
+        while True:
+            self.log=open(Log_file,'w+')
+            
+            #Kill daemon when pidfile is erased
+            self.checkpid()
+            if not pid:
+                self.log.write("Daemon killed remotely.\n")
+                self.log.write("Daemon stop at %s\n"%time.ctime(time.time()))              
+                self.log.close()
+                break
+            
+            #List jobs
+            self.log.write("Job list at %s\n"%time.ctime(time.time()))
+            self.listjobs()
+            self.log.write(joblist)
+           
+            #Check every job         
+            self.checkjobs()
+            self.log.close()            
+            time.sleep(10+self.wait_time) #If end near, check in 10s
+            with open(self.pickle_path,'w+') as f:     
+                pickle.dump(self,f)
+        self.log=open(Log_file,'a+')        
+        self.log.write("No more processes active, Daemon stop at %s\n"%time.ctime(time.time()))  
+        self.log.close()
  
+class SlurmCommander():
+    def __init__(self):
+        #Check if tracker has started
+        self.pidfile='%s/Tracking/SlurmTracker.pid'%my_path()
+        self.pickle_file='%s/Tracking/SlurmTracker.pickle'%my_path()
+        self.tracking_path='%s/Tracking/'%my_path()
+        try:
+            pf = file(self.pidfile,'r')
+            pid,self.hostname = pf.read().strip().split('\t')
+            self.pid = int(pid)
+            pf.close()
+            self.state='Running'
+            #daemon_log.write(str(self.pidfile))
+        except IOError:
+            self.pid = None
+            self.hostname = None
+            self.state='Not running'
+
+            
+
+    def start(self,slurm_script):
+        '''Starts a job'''
+        #Start a slurm job
+        Job=SlurmJob(slurm_script)
+        Job.run()
+        if self.state=='Not Running':
+            S = SlurmTracker('%s/Tracking/SlurmTracker.pid'%my_path())
+            S.start()
+        
+    def track(self,script,jobid):
+        print "Not implemented"
+        #Need information from the script
+        #May try to find jobid from last output
+        #Job=SlurmJob(slurm_script)
+        #Job.run()
+        #if self.state='Not Running':
+        #    S = SlurmTracker('%s/Tracking/SlurmTracker.pid'%my_path())
+        #    S.start()
+            
+    def list(self,):
+        J=glob.glob("%s/Tracking/slurm-*.pickle"%my_path())
+        '\n'.join([j.split('/')[-1] for j in J])
+            
+    def cancel(self,jobid):
+        print "Not implemented"
+    
+    def test(self,test=False):
+        try:
+            print SlurmQueue()
+            print "function SlurmQueue: succeded"
+        except:
+            pass
+            print "function SlurmQueue: failed"
+        self.status()
+        
+    def status(self,):
+        try:
+            pf = file(self.pidfile,'r')
+            pid,self.hostname = pf.read().strip().split('\t')
+            self.pid = int(pid)
+            pf.close()
+            self.state='Running'
+            #daemon_log.write(str(self.pidfile))
+        except IOError:
+            self.pid = None
+            self.hostname = None
+            self.state='Not running'
+        if self.state=='Running':
+            with open(self.pickle_file) as F:
+                print pickle.load(F)
+        else:
+            print "Not Running"
+        
+
 if __name__=='__main__':
+    
+    import argparse,sys
+    main=SlurmCommander()
+    
+    # create the top-level parser
+    parser = argparse.ArgumentParser(description='This software contains utilities to execute slurm scripts in a tracked environment. It will restart the scripts when stopped due to time limit')
+    parser.add_argument('--test', action='store_true', help='Write the output of a command without executing it')
+    subparsers = parser.add_subparsers()#help='Possible actions')
+    
+    # Start parser
+    start_parser = subparsers.add_parser('start', help='Starts a job from a slurm script')
+    start_parser.add_argument('slurm_script', help='Slurm script') #Slurm script
+    start_parser.set_defaults(func=main.start)
+    
+    # Tracking parser
+    track_parser = subparsers.add_parser('track', help='Tracks a slurm job that already started')
+    start_parser.add_argument('slurm_script', help='Slurm script') #Slurm script
+    track_parser.add_argument('job', help='Slurm job') #Slurm job
+    track_parser.set_defaults(func=main.track)
+    
+    # Status
+    list_parser = subparsers.add_parser('status', help='Prints status of the tracker and the list jobs being currently tracked')
+    list_parser.set_defaults(func=main.list)
+    
+    # Cancel jobs
+    cancel_parser = subparsers.add_parser('cancel', help='Cancels a job')
+    cancel_parser.add_argument('job', help='Slurm job') #Slurm job
+    list_parser.set_defaults(func=main.cancel)
+    
+    # Test
+    test_parser = subparsers.add_parser('test', help='Tests if every command on the scripts works correctly')
+    test_parser.set_defaults(func=main.test)
+    
+    if len(sys.argv)==1:
+        parser.print_help()
+        sys.exit(1)
+    else:
+        args = parser.parse_args()
+    print args
+    args.func(args)
+    
+    '''
     #Testing    
     #Start options
     #S=SlurmOptions()
@@ -364,4 +542,4 @@ if __name__=='__main__':
     else:
             print "usage: %s start|stop|restart|test" % sys.argv[0]
             sys.exit(2)
-
+    '''
