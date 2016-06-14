@@ -386,6 +386,7 @@ class SlurmTracker(Daemon):
             log.close()            
             with open(self.pickle_path,'w+') as f:     
                 pickle.dump(self,f)
+            log.write('Waiting %i seconds'%self.wait_time)
             time.sleep(10+self.wait_time) #If end near, check in 10s
         log=open(Log_file,'a+')        
         log.write("No more processes active, Daemon stop at %s\n"%time.ctime(time.time()))  
