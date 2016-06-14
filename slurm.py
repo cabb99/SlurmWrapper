@@ -153,7 +153,7 @@ class SlurmOptions(object):
         a=Var['check']
         if type(a)==type:
             if type(value)==a:
-                return True:
+                return True
             else:
                 try: 
                     a(value)
