@@ -469,7 +469,7 @@ if __name__=='__main__':
     
     # Tracking parser
     track_parser = subparsers.add_parser('track', help='Tracks a slurm job that already started')
-    start_parser.add_argument('slurm_script', help='Slurm script') #Slurm script
+    track_parser.add_argument('slurm_script', help='Slurm script') #Slurm script
     track_parser.add_argument('job', help='Slurm job') #Slurm job
     track_parser.set_defaults(func=main.track)
     
