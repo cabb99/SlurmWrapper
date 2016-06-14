@@ -384,7 +384,7 @@ class SlurmTracker(Daemon):
             #List jobs
             log.write("Job list at %s\n"%time.ctime(time.time()))
             self.listjobs()
-            log.write('\n'.join([str(j.jobid) for j in self.joblist])+'\n')
+            log.write('\n'.join(['\t'.join([str(j.jobid),j.state]) for j in self.joblist])+'\n')
            
             #Check every job         
             self.checkjobs()             
