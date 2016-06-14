@@ -358,6 +358,7 @@ class SlurmTracker(Daemon):
                 else:
                     joblist+=[job]
                     self.wait_time=job.WallTime() if job.WallTime()<self.wait_time else self.wait_time
+        self.joblist=joblist
     
     def run(self,max_wait_time=60*60):
         self.log_file='%s/Tracking/SlurmTracker.log'%my_path() 
