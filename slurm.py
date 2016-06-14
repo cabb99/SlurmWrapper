@@ -346,7 +346,9 @@ class SlurmTracker(Daemon):
         self.wait_time=self.max_wait_time
         joblist=[]
         for job in self.joblist:
-                os.chdir(job.path)
+                #os.chdir(job.path)
+                if job.status() == 'Starting':
+                    time.sleep(10)
                 if job.status()=='END':
                     Due2Time=False                    
                     with open(job.stdout) as handle:
@@ -362,6 +364,7 @@ class SlurmTracker(Daemon):
                     joblist+=[job]
                     self.wait_time=job.WallTime() if job.WallTime()<self.wait_time else self.wait_time
                 else:
+                    joblist+=[job]
                     self.wait_time=0
         self.joblist=joblist
     
@@ -430,7 +433,7 @@ class SlurmCommander():
         if self.state=='Not Running':
             S = SlurmTracker('%s/Tracking/SlurmTracker.pid'%my_path())
             print 'Tracker starts'
-            S.run()
+            S.start()
             
         
     def track(self,script,jobid):
