@@ -92,7 +92,7 @@ class SlurmOptions(object):
         self.define_option('ntasks'            ,1          ,True   ,int    ,'Number of tasks per job. Used for MPI jobs')
         self.define_option('nodes'             ,1          ,True   ,int    ,'Number of nodes requested.')
         self.define_option('ntasks-per-node'   ,1          ,True   ,int    ,'Number of tasks per node')
-        self.define_option('partition'         ,'commons'  ,True   ,int    ,'Specify the name of the Partition (queue) to use')
+        self.define_option('partition'         ,'commons'  ,True   ,str    ,'Specify the name of the Partition (queue) to use')
         self.define_option('time'              ,'08:00:00' ,True   ,'stime','Maximum run time needed')
         self.define_option('cpus-per-task'     ,1          ,False  ,int    ,'Number processes per task')
         self.define_option('mem-per-cpu'       ,'1024M'    ,False  ,int    ,'Maximum amount of physical memory used per process')
