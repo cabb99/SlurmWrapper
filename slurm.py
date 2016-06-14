@@ -425,7 +425,6 @@ class SlurmCommander():
         dry=args.test
         #Start a slurm job
         Job=SlurmJob(args.slurm_script)
-        
         Job.run()
         print 'Job sent to queue as ',Job.jobid
         if self.state=='Not Running':
