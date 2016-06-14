@@ -361,6 +361,7 @@ class SlurmTracker(Daemon):
         Log_file='%s/Tracking/SlurmTracker.log'%my_path() 
         self.pickle_path='%s/Tracking/SlurmTracker.pickle'%my_path()
         self.max_wait_time=max_wait_time
+        time.sleep(10)
         while True:
             self.log=open(Log_file,'w+')
             #Kill daemon when pidfile is erased
