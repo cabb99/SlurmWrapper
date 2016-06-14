@@ -272,7 +272,7 @@ class NewSlurmJob():
         self.remove()
         
 
-    def save(self,pickle_path='%s/Tracking'%my_path()):
+    def save(self,pickle_path='%s/Tracking/slurm-%i.pickle'%(my_path(),self.jobid)):
         '''add the job to the tracker'''
         self.pickle_path=pickle_path
         with open(self.pickle_path,'w+') as f:     
