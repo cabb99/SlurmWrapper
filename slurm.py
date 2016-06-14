@@ -397,10 +397,11 @@ class SlurmCommander():
 
             
 
-    def start(self,slurm_script):
+    def start(self,args):
         '''Starts a job'''
+        
         #Start a slurm job
-        Job=SlurmJob(slurm_script)
+        Job=SlurmJob(args.slurm_script)
         Job.run()
         if self.state=='Not Running':
             S = SlurmTracker('%s/Tracking/SlurmTracker.pid'%my_path())
@@ -491,7 +492,7 @@ if __name__=='__main__':
     else:
         args = parser.parse_args()
     print args
-    args.func(*args)
+    args.func(args)
     
     '''
     #Testing    
