@@ -347,7 +347,7 @@ class SlurmTracker(Daemon):
                 os.chdir(job.path)
                 if job.status()=='END':
                     Due2Time=False                    
-                    with open(last_slurm) as handle:
+                    with open(job.stdout) as handle:
                         for line in handle:
                             if "CANCELLED" in line and "DUE TO TIME LIMIT" in line:
                                 Due2Time=True
