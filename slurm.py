@@ -363,7 +363,6 @@ class SlurmTracker(Daemon):
         self.max_wait_time=max_wait_time
         while True:
             self.log=open(Log_file,'w+')
-            
             #Kill daemon when pidfile is erased
             self.checkpid()
             if not pid:
@@ -412,10 +411,10 @@ class SlurmCommander():
         
         #Start a slurm job
         Job=SlurmJob(args.slurm_script)
-        Job.run()
+        Job.test()
         if self.state=='Not Running':
             S = SlurmTracker('%s/Tracking/SlurmTracker.pid'%my_path())
-            S.start()
+            S.run()
         
     def track(self,script,jobid):
         print "Not implemented"
