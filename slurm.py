@@ -262,8 +262,6 @@ class NewSlurmJob():
             return stime(self.slurm_options.get('time'))   
         elif self.status()=='R':
             return stime(self.slurm_options.get('time'))-stime(SlurmQueue()[self.jobid]['TIME'])
-        elif self.status() in ['END','OFF']:
-            return 60*60
         else:
             return 0
 
@@ -379,13 +377,13 @@ class SlurmTracker(Daemon):
             self.listjobs()
             if len(self.joblist)==0:
                 break
-            log.write('\n'.join([str(j.jobid) for j in self.joblist]))
+            log.write('\n'.join([str(j.jobid) for j in self.joblist])+'\n')
            
             #Check every job         
             self.checkjobs()             
             with open(self.pickle_path,'w+') as f:     
                 pickle.dump(self,f)
-            log.write('Waiting %i seconds'%self.wait_time)
+            log.write('Waiting %i seconds\n'%(self.wait_time+10))
             log.close()  
             time.sleep(10+self.wait_time) #If end near, check in 10s
         log=open(Log_file,'a+')        
