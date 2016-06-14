@@ -108,7 +108,7 @@ class SlurmOptions(object):
             for line in S:
                 if len(line)>10 and line[:7]=='#SBATCH' and len(line.split('--'))==2:
                     var,val=line.split('--')[1].split('=')
-                    print var,val.split('\n')[0]
+                    #print var,val.split('\n')[0]
                     self.option(var,val.split('\n')[0])
     
     def define_option(self,variable,default_value,explicit,var_type,description):
@@ -414,9 +414,11 @@ class SlurmCommander():
         #Start a slurm job
         Job=SlurmJob(args.slurm_script)
         Job.run()
+        print 'Job running'
         if self.state=='Not Running':
             S = SlurmTracker('%s/Tracking/SlurmTracker.pid'%my_path())
             S.run()
+            print 'Tracker started'
         
     def track(self,script,jobid):
         print "Not implemented"
