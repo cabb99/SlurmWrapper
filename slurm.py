@@ -341,6 +341,7 @@ class SlurmTracker(Daemon):
         
     def checkjobs(self):
         self.wait_time=self.max_wait_time
+        joblist=[]
         for job in self.joblist:
                 os.chdir(job.path)
                 if job.status()=='END':
@@ -351,9 +352,11 @@ class SlurmTracker(Daemon):
                                 Due2Time=True
                     if Due2Time:
                         job.restart()
+                        joblist+=[job]
                     else:
                         job.remove()
                 else:
+                    joblist+=[job]
                     self.wait_time=job.WallTime() if job.WallTime()<self.wait_time else self.wait_time
     
     def run(self,max_wait_time=60*60):
@@ -375,12 +378,12 @@ class SlurmTracker(Daemon):
             #List jobs
             log.write("Job list at %s\n"%time.ctime(time.time()))
             self.listjobs()
-            if len(self.joblist)==0:
-                break
             log.write('\n'.join([str(j.jobid) for j in self.joblist])+'\n')
            
             #Check every job         
             self.checkjobs()             
+            if len(self.joblist)==0:
+                break
             with open(self.pickle_path,'w+') as f:     
                 pickle.dump(self,f)
             log.write('Waiting %i seconds\n'%(self.wait_time+10))
