@@ -404,6 +404,7 @@ class SlurmCommander():
             self.pid = None
             self.hostname = None
             self.state='Not running'
+        print self.state
 
             
 
