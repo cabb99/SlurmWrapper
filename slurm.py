@@ -491,7 +491,7 @@ if __name__=='__main__':
     else:
         args = parser.parse_args()
     print args
-    args.func(**args)
+    args.func(*args)
     
     '''
     #Testing    
