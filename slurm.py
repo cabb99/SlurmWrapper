@@ -376,7 +376,7 @@ class SlurmTracker(Daemon):
             #List jobs
             log.write("Job list at %s\n"%time.ctime(time.time()))
             self.listjobs()
-            if len(self.listjobs)==0:
+            if len(self.joblist)==0:
                 break
             log.write('\n'.join([str(j.jobid) for j in self.joblist]))
            
