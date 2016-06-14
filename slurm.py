@@ -108,7 +108,7 @@ class SlurmOptions(object):
             for line in S:
                 if len(line)>10 and line[:7]=='#SBATCH' and len(line.split('--'))==2:
                     var,val=line.split('--')[1].split('=')
-                    print var,val,val.split('\n')[0]
+                    print var,val.split('\n')[0]
                     self.option(var,val.split('\n')[0])
     
     def define_option(self,variable,default_value,explicit,var_type,description):
@@ -152,7 +152,14 @@ class SlurmOptions(object):
         '''Check if the option format is correct'''
         a=Var['check']
         if type(a)==type:
-            return True if type(value)==a else False
+            if type(value)==a:
+                return True:
+            else:
+                try: 
+                    a(value)
+                    return True
+                except ValueError:
+                    return False
         elif type(a)==list:
             return True if type(value) in a else False
         elif type(a)==str:
