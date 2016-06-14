@@ -118,7 +118,7 @@ class SlurmOptions(object):
     def option(self,variable,value,explicit=True,var_type='pass',description=''):
         '''Change the value of an option, if non-existant then it will be defined'''
         if variable in self.S.keys():
-            if type(self.S[variable]['check'])==type and self.S[variable]['check']<>str:
+            if type(self.S[variable]['check'])==type:
                 value=self.S[variable]['check'](value)
             assert self.check(self.S[variable],value),'Not a valid value for %s: %s'%(variable,value)
             self.S[variable]['value']=value
@@ -168,7 +168,7 @@ class SlurmOptions(object):
             if a=='stime':
                 try:
                     test=value.split('-')
-                    test2=a[-1].split(':')
+                    test2=test[-1].split(':')
                     if len(test2)==3 and 0<len(test)<=2:
                         try:
                             [int(a) for a in test2]
