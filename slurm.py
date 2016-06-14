@@ -286,7 +286,7 @@ class SlurmJob(NewSlurmJob):
         '''Start a job'''    
         self.config_file=config_file
         self.slurm_options=SlurmOptions()
-        self.slurm_options.read(script)
+        self.slurm_options.read(config_file)
         if self.slurm_options.get('workdir'):        
             self.path=self.slurm_options.get('workdir')       
         else:
