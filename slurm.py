@@ -364,7 +364,7 @@ class SlurmTracker(Daemon):
                     joblist+=[job]
                     self.wait_time=job.WallTime() if job.WallTime()<self.wait_time else self.wait_time
                 else:
-                    joblist+=[job]
+                    job.remove()
                     self.wait_time=0
         self.joblist=joblist
     
