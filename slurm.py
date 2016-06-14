@@ -286,7 +286,7 @@ class NewSlurmJob():
         except OSError:
             pass
 
-    def clean():
+    def clean(self):
         if self.status in ['END','OFF']:
             self.remove()
 
