@@ -359,12 +359,12 @@ class SlurmTracker(Daemon):
                     self.wait_time=job.WallTime() if job.WallTime()<self.wait_time else self.wait_time
     
     def run(self,max_wait_time=60*60):
-        Log_file='%s/Tracking/SlurmTracker.log'%my_path() 
+        self.log_file='%s/Tracking/SlurmTracker.log'%my_path() 
         self.pickle_path='%s/Tracking/SlurmTracker.pickle'%my_path()
         self.max_wait_time=max_wait_time
         time.sleep(10)
         while True:
-            log=open(Log_file,'w+')
+            log=open(self.log_file,'w+')
             #Kill daemon when pidfile is erased
             self.checkpid()
             if not pid:
@@ -463,7 +463,14 @@ class SlurmCommander():
             self.state='Not running'
         if self.state=='Running':
             with open(self.pickle_file) as F:
-                print pickle.load(F)
+                ST=pickle.load(F)
+            print 'Running'
+            print 'Host: ',self.hostname
+            print 'Pid: ',self.pid
+            print 'Wait time: ',ST.wait_time
+            with open(ST.log_file) as F:
+                for line in ST.log_file:
+                    print line.strip()
         else:
             print "Not Running"
         
