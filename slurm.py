@@ -358,9 +358,11 @@ class SlurmTracker(Daemon):
                         joblist+=[job]
                     else:
                         job.remove()
-                else:
+                elif job.status() in ['PD','R']:
                     joblist+=[job]
                     self.wait_time=job.WallTime() if job.WallTime()<self.wait_time else self.wait_time
+                else:
+                    self.wait_time=0
         self.joblist=joblist
     
     def run(self,max_wait_time=60*60):
@@ -434,13 +436,6 @@ class SlurmCommander():
         
     def track(self,script,jobid):
         print "Not implemented"
-        #Need information from the script
-        #May try to find jobid from last output
-        #Job=SlurmJob(slurm_script)
-        #Job.run()
-        #if self.state='Not Running':
-        #    S = SlurmTracker('%s/Tracking/SlurmTracker.pid'%my_path())
-        #    S.start()
             
     def cancel(self,jobid):
         print "Not implemented"
