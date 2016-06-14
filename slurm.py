@@ -364,6 +364,7 @@ class SlurmTracker(Daemon):
         self.max_wait_time=max_wait_time
         time.sleep(10)
         while True:
+            self.last_check=time.ctime()
             log=open(self.log_file,'w+')
             #Kill daemon when pidfile is erased
             self.checkpid()
@@ -417,7 +418,7 @@ class SlurmCommander():
         #Start a slurm job
         Job=SlurmJob(args.slurm_script)
         Job.run()
-        print 'Job running'
+        print 'Job sent to queue as ',Job.jobid
         if self.state=='Not Running':
             S = SlurmTracker('%s/Tracking/SlurmTracker.pid'%my_path())
             S.run()
@@ -432,10 +433,6 @@ class SlurmCommander():
         #if self.state='Not Running':
         #    S = SlurmTracker('%s/Tracking/SlurmTracker.pid'%my_path())
         #    S.start()
-            
-    def list(self,):
-        J=glob.glob("%s/Tracking/slurm-*.pickle"%my_path())
-        '\n'.join([j.split('/')[-1] for j in J])
             
     def cancel(self,jobid):
         print "Not implemented"
@@ -468,6 +465,7 @@ class SlurmCommander():
             print 'Host: ',self.hostname
             print 'Pid: ',self.pid
             print 'Wait time: ',ST.wait_time
+            print 'Last check: ',ST.last_check
             with open(ST.log_file) as F:
                 for line in ST.log_file:
                     print line.strip()
@@ -498,7 +496,7 @@ if __name__=='__main__':
     
     # Status
     list_parser = subparsers.add_parser('status', help='Prints status of the tracker and the list jobs being currently tracked')
-    list_parser.set_defaults(func=main.list)
+    list_parser.set_defaults(func=main.status)
     
     # Cancel jobs
     cancel_parser = subparsers.add_parser('cancel', help='Cancels a job')
