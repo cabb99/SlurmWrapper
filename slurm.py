@@ -282,7 +282,7 @@ class NewSlurmJob():
             self.remove()
 
 class SlurmJob(NewSlurmJob):
-    def __init__(self,script):
+    def __init__(self,config_file):
         '''Start a job'''    
         self.config_file=config_file
         self.slurm_options=SlurmOptions()
