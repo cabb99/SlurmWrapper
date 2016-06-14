@@ -431,7 +431,7 @@ class SlurmCommander():
         if self.state=='Not Running':
             S = SlurmTracker('%s/Tracking/SlurmTracker.pid'%my_path())
             print 'Tracker starts'
-            S.start()
+            S.run()
             
         
     def track(self,script,jobid):
