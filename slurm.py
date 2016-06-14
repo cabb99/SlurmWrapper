@@ -364,29 +364,31 @@ class SlurmTracker(Daemon):
         self.max_wait_time=max_wait_time
         time.sleep(10)
         while True:
-            self.log=open(Log_file,'w+')
+            log=open(Log_file,'w+')
             #Kill daemon when pidfile is erased
             self.checkpid()
             if not pid:
-                self.log.write("Daemon killed remotely.\n")
-                self.log.write("Daemon stop at %s\n"%time.ctime(time.time()))              
-                self.log.close()
+                log.write("Daemon killed remotely.\n")
+                log.write("Daemon stop at %s\n"%time.ctime(time.time()))              
+                log.close()
                 break
             
             #List jobs
-            self.log.write("Job list at %s\n"%time.ctime(time.time()))
+            log.write("Job list at %s\n"%time.ctime(time.time()))
             self.listjobs()
-            self.log.write('\n'.join([str(j.jobid) for j in self.joblist]))
+            if len(self.listjobs)==0:
+                break
+            log.write('\n'.join([str(j.jobid) for j in self.joblist]))
            
             #Check every job         
             self.checkjobs()
-            self.log.close()            
+            log.close()            
             time.sleep(10+self.wait_time) #If end near, check in 10s
             with open(self.pickle_path,'w+') as f:     
                 pickle.dump(self,f)
-        self.log=open(Log_file,'a+')        
-        self.log.write("No more processes active, Daemon stop at %s\n"%time.ctime(time.time()))  
-        self.log.close()
+        log=open(Log_file,'a+')        
+        log.write("No more processes active, Daemon stop at %s\n"%time.ctime(time.time()))  
+        log.close()
  
 class SlurmCommander():
     def __init__(self):
