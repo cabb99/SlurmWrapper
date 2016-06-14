@@ -276,14 +276,14 @@ class NewSlurmJob():
 
     def save(self,):
         '''add the job to the tracker'''
-        self.pickle_path='%s/Tracking/slurm-%i.pickle'%(my_path(),self.jobid)
-        with open(self.pickle_path,'w+') as f:     
+        self.pickle_file='%s/Tracking/slurm-%i.pickle'%(my_path(),self.jobid)
+        with open(self.pickle_file,'w+') as f:     
             pickle.dump(self,f)
             
     def remove(self):
         '''remove the job from the tracker'''
         try:
-            os.remove(self.pickle_path)
+            os.remove(self.pickle_file)
         except OSError:
             pass
 
@@ -365,7 +365,7 @@ class SlurmTracker(Daemon):
     
     def run(self,max_wait_time=60*60):
         self.log_file='%s/Tracking/SlurmTracker.log'%my_path() 
-        self.pickle_path='%s/Tracking/SlurmTracker.pickle'%my_path()
+        self.pickle_file='%s/Tracking/SlurmTracker.pickle'%my_path()
         self.max_wait_time=max_wait_time
         time.sleep(10)
         while True:
@@ -388,7 +388,7 @@ class SlurmTracker(Daemon):
             self.checkjobs()             
             if len(self.joblist)==0:
                 break
-            with open(self.pickle_path,'w+') as f:     
+            with open(self.pickle_file,'w+') as f:     
                 pickle.dump(self,f)
             log.write('Waiting %i seconds\n'%(self.wait_time+10))
             log.close()  
@@ -396,6 +396,7 @@ class SlurmTracker(Daemon):
         log=open(self.log_file,'a+')        
         log.write("No more processes active, Daemon stop at %s\n"%time.ctime(time.time()))  
         log.close()
+        os.remove(self.pickle_file)
  
 class SlurmCommander():
     def __init__(self):
@@ -427,8 +428,9 @@ class SlurmCommander():
         print 'Job sent to queue as ',Job.jobid
         if self.state=='Not Running':
             S = SlurmTracker('%s/Tracking/SlurmTracker.pid'%my_path())
+            print 'Tracker starts'
             S.start()
-            print 'Tracker started'
+            
         
     def track(self,script,jobid):
         print "Not implemented"
@@ -474,10 +476,20 @@ class SlurmCommander():
             print 'Wait time: ',ST.wait_time
             print 'Last check: ',ST.last_check
             with open(ST.log_file) as F:
-                for line in ST.log_file:
+                for line in F:
                     print line.strip()
         else:
             print "Not Running"
+            
+    def stop(self,args):
+        if self.state=='Running':
+            with open(self.pickle_file) as F:
+                ST=pickle.load(F)
+                ST.stop()
+        os.remove(self.pidfile)
+        os.remove(self.pickle_file)
+        
+        
         
 
 if __name__=='__main__':
@@ -514,60 +526,14 @@ if __name__=='__main__':
     test_parser = subparsers.add_parser('test', help='Tests if every command on the scripts works correctly')
     test_parser.set_defaults(func=main.test)
     
+    #Stop
+    stop_parser = subparsers.add_parser('stop', help='Stops the tracker')
+    stop_parser.set_defaults(func=main.stop)
+    
     if len(sys.argv)==1:
         parser.print_help()
         sys.exit(1)
     else:
         args = parser.parse_args()
-    print args
+    #print args
     args.func(args)
-    
-    '''
-    #Testing    
-    #Start options
-    #S=SlurmOptions()
-    #Define new option
-    #Define old option
-    #Change new option
-    #Change old option
-    #Give bad option value
-    #Get the value of an option
-    #Print option help
-    #Start job
-    #Cancel job
-    #Restart job
-    #Save job
-    #Delete job
-
-
-    S=SlurmOptions()
-    S.option('ntasks',1)
-    S.option('workdir','/home/cab22/Git/Daemon/1')
-    #S.option('output','/home/cab22/Git/Daemon/2/oo')
-    #S.option('error','/home/cab22/Git/Daemon/3/aa')
-    j=SlurmJob('sleep 10\nhostname\nsleep 10\n',S)
-    print j.jobid, j.status()
-    #import time
-    #time.sleep(5)    
-    while j.status()<>'END':
-        print j.jobid,j.WallTime(),j.status()
-    daemon = MyDaemon('%s/Tracking/AutoRestart.pid'%my_path())
-
-    if len(sys.argv) == 2:
-            if 'start' == sys.argv[1]:
-                    daemon.start()
-            elif 'stop' == sys.argv[1]:
-                    daemon.stop()
-            elif 'restart' == sys.argv[1]:
-                    daemon.restart()
-            elif 'test' == sys.argv[1]:
-                daemon.pidfile=('%s/Tracking/dummy.pid'%my_path())                    
-                daemon.run()
-            else:
-                    print "Unknown command"
-                    sys.exit(2)
-            sys.exit(0)
-    else:
-            print "usage: %s start|stop|restart|test" % sys.argv[0]
-            sys.exit(2)
-    '''
