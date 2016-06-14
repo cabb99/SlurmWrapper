@@ -403,7 +403,7 @@ class SlurmCommander():
         except IOError:
             self.pid = None
             self.hostname = None
-            self.state='Not running'
+            self.state='Not Running'
         print self.state
 
             
