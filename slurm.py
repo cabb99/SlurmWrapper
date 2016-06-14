@@ -413,9 +413,10 @@ class SlurmCommander():
 
     def start(self,args):
         '''Starts a job'''
-        
+        dry=args.test
         #Start a slurm job
         Job=SlurmJob(args.slurm_script)
+        
         Job.run()
         print 'Job sent to queue as ',Job.jobid
         if self.state=='Not Running':
@@ -445,7 +446,8 @@ class SlurmCommander():
             print "function SlurmQueue: failed"
         self.status()
         
-    def status(self,):
+    def status(self,args):
+        dry=args.test
         try:
             pf = file(self.pidfile,'r')
             pid,self.hostname = pf.read().strip().split('\t')
