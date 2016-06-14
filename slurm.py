@@ -486,9 +486,14 @@ class SlurmCommander():
             with open(self.pickle_file) as F:
                 ST=pickle.load(F)
                 ST.stop()
-        os.remove(self.pidfile)
-        os.remove(self.pickle_file)
-        
+        try:
+            os.remove(self.pidfile)
+        except OSError:
+            pass
+        try:
+            os.remove(self.pickle_file)
+        except OSError:
+            pass
         
         
 
