@@ -390,7 +390,7 @@ class SlurmTracker(Daemon):
             log.write('Waiting %i seconds\n'%(self.wait_time+10))
             log.close()  
             time.sleep(10+self.wait_time) #If end near, check in 10s
-        log=open(Log_file,'a+')        
+        log=open(self.log_file,'a+')        
         log.write("No more processes active, Daemon stop at %s\n"%time.ctime(time.time()))  
         log.close()
  
