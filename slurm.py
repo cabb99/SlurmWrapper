@@ -104,12 +104,10 @@ class SlurmOptions(object):
     
     def read(self,script):
         script_args={}
-        print "Old Configuration:"
         with open(script) as S:
             for line in S:
                 if len(line)>10 and line[:7]=='#SBATCH' and len(line.split('--'))==2:
                     var,val=line.split('--')[1].split('=')
-                    print line[:-1]
                     self.option(var,val.split('\n')[0])
     
     def define_option(self,variable,default_value,explicit,var_type,description):
@@ -284,6 +282,7 @@ class NewSlurmJob():
 class SlurmJob(NewSlurmJob):
     def __init__(self,config_file):
         '''Start a job'''    
+        print config_file
         self.config_file=config_file
         self.slurm_options=SlurmOptions()
         self.slurm_options.read(config_file)
