@@ -244,6 +244,9 @@ class NewSlurmJob():
             self.stderr='%s/slurm-%i.out'%(self.path,self.jobid)
         self.state='Starting'
         self.save()
+        
+    def restart(self):
+        self.run()
 
     def status(self):
         '''Get the status of the job'''
@@ -424,7 +427,7 @@ class SlurmCommander():
         print 'Job sent to queue as ',Job.jobid
         if self.state=='Not Running':
             S = SlurmTracker('%s/Tracking/SlurmTracker.pid'%my_path())
-            S.run()
+            S.start()
             print 'Tracker started'
         
     def track(self,script,jobid):
